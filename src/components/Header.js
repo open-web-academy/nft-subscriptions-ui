@@ -66,8 +66,15 @@ import {
           const pnears = prettyBalance(nears.available, 24, 4);
           
           setTimeout(() => {
-            setBalanceNEAR(pnears);
+            const n = (parseFloat(pnears)-0.051) > 0  ? (parseFloat(pnears)-0.051).toFixed(4) : 0; 
+            setBalanceNEAR(n);
             setBalanceUSDT(balance/1000000);
+            
+            const balances = {
+              NEAR: n,
+              USDT: balance/1000000
+            }
+            localStorage.setItem('balances', JSON.stringify(balances));
             setLoad(true);
           }, 1000);
          
@@ -160,18 +167,20 @@ import {
                   <Center>
                     <Avatar
                       size={'2xl'}
-                      src={'https://avatars.dicebear.com/api/male/username.svg'}
+                      //src={'https://avatars.dicebear.com/api/male/username.svg'}
+                      name={accountId}
+                      src={'https://bit.ly/broken-link'}
                     />
                   </Center>
                   <br />
                   <Center>
                     { accountId && load &&
-                      <p> 
+                      <div>
                         <b>{accountId}</b><br/><br/>
                         <Divider /><br/>
                         <b>NEAR:</b> {balanceNEAR} Ⓝ<br/>
                         <b>USDT:</b> {balanceUSDT.toLocaleString("en")} Ⓣ
-                      </p>
+                      </div>
                     }
                   </Center>
                   <br />

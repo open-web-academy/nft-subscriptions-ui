@@ -57,7 +57,6 @@ export default function BuySubscriptions() {
     const { selector, modal, accounts, accountId } = useWalletSelector();
     const [load, setLoad] = useState(false);
     const [allSuscriptionsCosts, setSuscriptionsCosts] = useState({});
-    const [balanceUSDT, setBalanceUSDT] = useState();
     const backgroundColor = useColorModeValue('white', 'gray.800');
     const toast = useToast();
 
@@ -90,22 +89,9 @@ export default function BuySubscriptions() {
 
             let suscriptionsCosts = JSON.parse(
                 Buffer.from(tokens.result).toString()
-            );
-
-
-            const balanceUSDT = await provider.query({
-                request_type: "call_function",
-                account_id: process.env.REACT_APP_USDT_CONTRACT,
-                method_name: "ft_balance_of",
-                args_base64: btoa(JSON.stringify({ account_id: accountId})),
-                finality: "optimistic",
-            });
-
-            const balance = parseInt(Buffer.from(balanceUSDT.result).toString().replace(/['"]+/g, ''));
-
+            )
 
             setTimeout(() => {
-                setBalanceUSDT(balance/1000000);
                 setSuscriptionsCosts(suscriptionsCosts);
             }, 100);
             setLoad(true);
@@ -131,91 +117,106 @@ export default function BuySubscriptions() {
 
     const buy = async (type,duration,subscription) => {
         const costSubscription = await getCost(type);
-        if(costSubscription > balanceUSDT){
+
+        const balances = JSON.parse(localStorage.getItem('balances'));
+
+        console.log(balances.NEAR);
+        if(balances.NEAR < 0.2){
             Swal.fire({
                 width: '500',
                 title: 'Balance Insuficiente',
-                html: "<p style='text-align:left;'><b>Suscripción:</b> "+duration+"<br/><b>Costo:</b> "+costSubscription+" USDT <br/><b>Balance:</b> "+balanceUSDT+" USDT</p>",
+                html: "<p style='text-align:left;'> Debes tener por lo menos <b>0.2 NEAR</b> para poder minar el NFT<br/><br/><b>Balance:</b> "+balances.NEAR+" NEAR</p>",
                 icon: 'warning',
                 showCancelButton: false,
                 confirmButtonColor: '#3085d6',
                 cancelButtonColor: '#d33',
                 confirmButtonText: 'Aceptar',
                 position: window.innerWidth < 1024 ? 'bottom' : 'center'
-              }).then(async (result) => {
-                
               });
-        } else {
+              return;
+        }
+
+        if(balances.USDT < costSubscription){
             Swal.fire({
                 width: '500',
-                title: 'Suscripción a comprar: '+duration,
-                text: "¿Deseas comprar esta suscripción por "+costSubscription+" USDT?",
-                icon: 'info',
-                showCancelButton: true,
+                title: 'Balance Insuficiente',
+                html: "<p style='text-align:left;'><b>Suscripción:</b> "+duration+"<br/><b>Costo:</b> "+costSubscription+" USDT <br/><b>Balance:</b> "+balances.USDT.toFixed(3)+" USDT</p>",
+                icon: 'warning',
+                showCancelButton: false,
                 confirmButtonColor: '#3085d6',
                 cancelButtonColor: '#d33',
-                confirmButtonText: 'Comprar',
-                cancelButtonText: 'Cancelar',
+                confirmButtonText: 'Aceptar',
                 position: window.innerWidth < 1024 ? 'bottom' : 'center'
-              }).then(async (result) => {
-                if (result.isConfirmed) {
-                  // Comprar y minar token (batch transaction)
-                  const transactions = [];
-                  let contract = await getNearContract();
-                  let amount = fromNearToYocto(0.01);
-                  let amountyocto = "1";
-                  
-                  let usdt_params = {
-                      receiver_id: process.env.REACT_APP_CONTRACT,
-                      amount: ""+(costSubscription*1000000),
-                      msg: "",
-                  };
-                    
-                  transactions.push({
-                      signerId: accountId,
-                      receiverId: process.env.REACT_APP_USDT_CONTRACT,
-                      actions: [
-                        {
-                          type: "FunctionCall",
-                          params: {
-                            methodName: "ft_transfer_call",
-                            args: usdt_params,
-                            gas: 300000000000000,
-                            deposit: amountyocto,
-                          },
-                        },
-                      ],
-                  });
-      
-                  let mint_params = {
-                      receiver_id: accountId,
-                      type_suscription: subscription
-                  };
-      
-                  transactions.push({
-                      signerId: accountId,
-                      receiverId: process.env.REACT_APP_CONTRACT,
-                      actions: [
-                        {
-                          type: "FunctionCall",
-                          params: {
-                            methodName: "mint",
-                            args: mint_params,
-                            gas: 300000000000000,
-                            deposit: amount,
-                          },
-                        },
-                      ],
-                  });
-                  console.log(transactions);
-                  const wallet = await selector.wallet();
-                  return wallet.signAndSendTransactions({ transactions })
-                  .then((res) => {
-                      console.log(res);
-                  });
-                }
               });
+              return;
         }
+
+        Swal.fire({
+            width: '500',
+            title: 'Suscripción a comprar: '+duration,
+            text: "¿Deseas comprar esta suscripción por "+costSubscription+" USDT?",
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Comprar',
+            cancelButtonText: 'Cancelar',
+            position: window.innerWidth < 1024 ? 'bottom' : 'center'
+            }).then(async (result) => {
+            if (result.isConfirmed) {
+                // Comprar y minar token (batch transaction)
+                const transactions = [];
+                let amount = fromNearToYocto(0.01);
+                let amountyocto = "1";
+                
+                let usdt_params = {
+                    receiver_id: process.env.REACT_APP_CONTRACT,
+                    amount: ""+(costSubscription*1000000),
+                    msg: "",
+                };
+                
+                transactions.push({
+                    signerId: accountId,
+                    receiverId: process.env.REACT_APP_USDT_CONTRACT,
+                    actions: [
+                    {
+                        type: "FunctionCall",
+                        params: {
+                        methodName: "ft_transfer_call",
+                        args: usdt_params,
+                        gas: 300000000000000,
+                        deposit: amountyocto,
+                        },
+                    },
+                    ],
+                });
+    
+                let mint_params = {
+                    receiver_id: accountId,
+                    type_suscription: subscription
+                };
+    
+                transactions.push({
+                    signerId: accountId,
+                    receiverId: process.env.REACT_APP_CONTRACT,
+                    actions: [
+                    {
+                        type: "FunctionCall",
+                        params: {
+                        methodName: "mint",
+                        args: mint_params,
+                        gas: 300000000000000,
+                        deposit: amount,
+                        },
+                    },
+                    ],
+                });
+                console.log(transactions);
+                const wallet = await selector.wallet();
+                return wallet.signAndSendTransactions({ transactions })
+                .then((res) => { });
+            }
+            });
     }
 
     if(load){
