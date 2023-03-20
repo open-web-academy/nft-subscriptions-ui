@@ -1,7 +1,10 @@
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import { useWalletSelector } from "../utils/walletSelector";
 import { providers, utils } from "near-api-js";
-import OWA from '../assets/img/owa.png';
+import common from '../assets/img/common.png';
+import rare from '../assets/img/rare.png';
+import superrare from '../assets/img/super-rare.png';
+import legendary from '../assets/img/legendary.png';
 import Swal from 'sweetalert2';
 import {
     Flex,
@@ -29,25 +32,25 @@ import {
 const allSubscriptions = [
     {
         id: '1mes',
-        image: OWA,
+        image: common,
         duration: '1 Mes',
         type: 'one_month'
     },
     {
         id: '6meses',
-        image: OWA,
+        image: rare,
         duration: '6 Meses',
         type: 'six_months'
     },
     {
         id: '1año',
-        image: OWA,
+        image: superrare,
         duration: '1 Año',
         type: 'one_year'
     },
     {
         id: 'permanente',
-        image: OWA,
+        image: legendary,
         duration: 'Permanente',
         type: 'permanent'
     }
@@ -235,7 +238,6 @@ export default function BuySubscriptions() {
                                         position="relative">
     
                                         <Image
-                                            bg='white'
                                             src={subscription.image}
                                             alt={`Suscripción de ${subscription.id}`}
                                             roundedTop="lg"
